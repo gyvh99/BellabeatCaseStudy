@@ -2,10 +2,7 @@
 title: "Bellabeat Case Study"
 author: "Grace"
 date: '2022-03-08'
-output:
-  html_document: default
-  word_document: default
-  pdf_document: default
+output: rmarkdown::github_document
 ---
 
 <h2 <span style="color: #FE8F77;"</span>Background</h2>
