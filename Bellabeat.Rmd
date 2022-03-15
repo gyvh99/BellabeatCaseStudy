@@ -1,0 +1,359 @@
+---
+title: "Bellabeat Case Study"
+author: "Grace"
+date: '2022-03-08'
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
+
+<h2 <span style="color: #FE8F77;"</span>Background</h2>
+
+  <p>The company Bellabeat, founded by Urška Sršen, is a health-focused, smart device manufacturer based in San Francisco. Focused on female empowerment, Bellabeat collects data on female activity, sleep, stress, and reproductive health. Multiple products have been launched since 2013 including the Bellabeat app, Leaf fitness tracker, Time wellness watch, Spring smart waterbottle, and a Bellabeat membership in which members can receive personalized health guidance. </p>
+
+<h2 <span style="color: #FE8F77;"</span>Ask</h2>
+
+  <h3>Business Objective</h3>
+
+  <p>Urška Sršen has expressed interest in analyzing smart device data with the goal of discovering growth opportunities for the company. This analysis will focus on other smart device data to see how customers are using their health tech products in hopes of improving Bellabeat's marketing strategy.</p>
+
+<h3>Key Stakeholders</h3> 
+  <p>
+    <ul>
+      <li>Urška Sršen: Bellabeat Co-founder and Chief Creative Officer</li>
+      <li>Sando Mur: Bellabeat Co-founder and mathematician; key member of Bellabeat's executive team</li>
+      <li>Bellabeat Marketing Analytics Team: Responsible for collecting, analyzing, and reporting data to help guide marketing strategy</li>
+    </ul>
+  </p>
+  
+
+<h3>Analysis Questions</h2>
+  <p>
+    <ol>
+      <li>What are some trends in smart device usage?</li>
+      <li>How could these trends apply to Bellabeat customers?</li>
+      <li>How could these trends help influence Bellabeat marketing strategy?</li>
+  </ol>
+  </p>
+
+
+<h3>Deliverables</h3>    
+
+  <ul>  
+    <li>Documentation of cleaning and manipulation of data</li>
+    <li>Supporting visualizations with key findings</li>
+    <li>Summary of the analysis</li>
+    <li>Recommendations based on the analysis</li>
+  </ul>
+
+<h2 <span style="color: #FE8F77;"</span>Prepare</h2>
+
+<h3>Data Used</h3>
+
+  <p>This analysis uses data from the Fitbit Fitness Tracker public data set which includes health data from thirty Fitbit users over a 2 month period. The data includes sleep, total steps, calories, tracker distance, active minutes by intensity, weight, and heart rate. To improve Bellabeat marketing strategy, I will be focusing on calories, activity intensity, total steps, and sleep.</p>
+
+<h3>Data Ethics</h3>
+
+  <p>After examining this data set, some limitations can be acknowledged. In the 'weight' data frame, only 8 Fitbit users consented to submit data into the application, making this parameter unable to be used. After the upcoming data merge, each data frame will only include 24 participants, therefore not meeting the minimum population requirement for an unbiased sample. However, we will continue for learning's sake. Additionally, Fitbit does not include demographic details in their data set such as gender and age, making it difficult to take this information and apply it to a solely-female customer base such as Bellabeat.</p> 
+
+```{r read csv files}
+daily_activity <- read.csv("/Users/grace/Library/Mobile Documents/com~apple~CloudDocs/Bellabeat/Fitabase Data 4.12.16-5.12.16/dailyActivity_merged.csv")
+
+daily_sleep <- read.csv("/Users/grace/Library/Mobile Documents/com~apple~CloudDocs/Bellabeat/Fitabase Data 4.12.16-5.12.16/sleepDay_merged.csv")
+
+daily_intensities <- read.csv("/Users/grace/Library/Mobile Documents/com~apple~CloudDocs/Bellabeat/Fitabase Data 4.12.16-5.12.16/dailyIntensities_merged.csv")
+
+daily_calories <- read.csv("/Users/grace/Library/Mobile Documents/com~apple~CloudDocs/Bellabeat/Fitabase Data 4.12.16-5.12.16/dailyCalories_merged.csv")
+```
+
+<h2 <span style="color: #FE8F77;"</span>Process</h2>
+
+  <h3>Tools Used</h3>
+  
+  <p>For this analysis, I have chosen to use R due to the usability of the R markdown document and to use the ggplot2 package to create high-level, statistical analyses.</p>
+  
+  <h3>Packages Used</h3>
+
+  <p>The tidyverse, ggplot2, tidyr, skimr, janitor, lubridate, and dplyr are the packages I have used to clean and present the data.</p>
+
+```{r load data packages}
+library(tidyverse)
+
+library(ggplot2)
+
+library(tidyr)
+
+library(skimr)
+
+library(janitor)
+
+library(dplyr)
+
+library(lubridate)
+```
+
+<h3>1. Format Dates</h3>
+
+  <p>I will be merging the data frames together further in my analysis and, therefore, need the date vectors to be converted from a character string to a date format. I have used the lubridate package to reformat the date columns.</p>
+
+```{r format date vectors}
+daily_activity$ActivityDate <- as.Date(daily_activity$ActivityDate, "%m/%d/%Y")
+
+daily_calories$ActivityDay <- as.Date(daily_calories$ActivityDay, "%m/%d/%Y")
+
+daily_intensities$ActivityDay <- as.Date(daily_intensities$ActivityDay, "%m/%d/%Y")
+
+daily_sleep$SleepDay <- as.Date(as.POSIXct(daily_sleep$SleepDay, "%m/%d/%Y %H:%M:%S", tz = "America/New_York"))
+```
+
+<h3>2. Rename Date Columns</h3>
+
+  <p>Here, I have renamed the date columns from all data frames with dplyr in preparation for the upcoming merge.</p>
+
+```{r rename date columns}
+daily_activity <- daily_activity %>% 
+  rename(date = ActivityDate)
+
+daily_calories <- daily_calories %>% 
+  rename(date = ActivityDay)
+
+daily_intensities <- daily_intensities %>% 
+  rename(date = ActivityDay)
+
+daily_sleep <- daily_sleep %>% 
+  rename(date = SleepDay)
+```
+
+<h3>3. Clean Data Frame Names</h3>
+
+  <p>Using the janitor package, I have cleaned the dirty data frame names into a consistent, snake_case format.</p>
+
+```{r clean header names}
+daily_activity <- daily_activity %>% 
+  clean_names()
+
+daily_calories <- daily_calories %>% 
+  clean_names()
+
+daily_intensities <- daily_intensities %>% 
+  clean_names()
+
+daily_sleep <- daily_sleep %>% 
+  clean_names()
+```
+
+<h3>4. Check for Duplicates</h3>
+
+```{r check for duplicates}
+get_dupes(daily_activity)
+
+get_dupes(daily_calories)
+
+get_dupes(daily_intensities)
+
+get_dupes(daily_sleep)
+```
+
+  <p>3 duplicate entries were found in the daily_sleep data frame.</p>
+
+<h3>5. Remove Duplicate Rows</h3>
+
+  <p>Using the dplyr package, I have eliminated duplicate rows from the daily_sleep data frame and returned only unique values.</p>
+
+```{r remove duplicate rows}
+daily_sleep <- daily_sleep %>% 
+  distinct()
+```
+
+<h3>6. Merge Data Frames</h3>
+
+  <p>I have created merged data frames based on two fields. The activity_sleep df will compare activity and sleep, and the intensities_sleep df will compare intensities and sleep.</p>
+
+```{r merge data frames}
+activity_sleep <- merge(daily_activity, daily_sleep, by = c('id','date'))
+
+intensities_sleep <- merge(daily_intensities, daily_sleep, by = c('id','date'))
+```
+
+<h2 <span style="color: #FE8F77;"</span>Analyze and Share</h2>
+
+
+<h3>Data summary</h3>
+
+```{r data summary}
+summary(activity_sleep)
+
+n_distinct(activity_sleep$id)
+
+summary(intensities_sleep)
+
+n_distinct(intensities_sleep$id)
+```
+
+
+
+  <p>There are 24 distinct user IDs in both data sets and no missing values in any column, so there is no need to remove empty columns or rows.</p>
+
+
+<h3>Activity Levels</h3>
+
+
+  <p>This pie chart represents how Fitbit users spend their logged fitness time. After examining the activity intensities data frame, I have found that users are primarily sedentary (82.3%), followed by lightly active (15.8%), very active (1.72%), and fairly active (1.11%). We can take this a step further and see how each activity level correlates with time spent asleep.</p>
+
+
+```{r intensities pie chart}
+#assign variables
+light <- sum(daily_intensities$lightly_active_minutes)
+sed <- sum(daily_intensities$sedentary_minutes)
+fair <- sum(daily_intensities$fairly_active_minutes)
+very <- sum(daily_intensities$very_active_minutes)
+total_minutes <- light+sed+fair+very
+#calculate percentages
+sed_per <- sed/total_minutes
+light_per <- light/total_minutes
+fair_per <- fair/total_minutes
+very_per <- very/total_minutes
+#assign slices and labels
+slices <- c(sed_per,light_per,fair_per,very_per)
+lbls <- c("Sedentary- 82.3%", "Lightly Active- 15.8%", "Fairly Active- 1.11%", "Very Active- 1.72%")
+#create pie chart
+pie <- pie(slices, labels = lbls, main = "Activity Levels", col = c("#C399F2","#7BB6F0","#F6B4D0","#7BE0D6"))
+```
+
+
+```{r activity and sleep correlations}
+#Very active and sleep
+cor(activity_sleep$very_active_minutes, activity_sleep$total_minutes_asleep)
+
+#Fairly active and sleep
+cor(activity_sleep$fairly_active_minutes, activity_sleep$total_minutes_asleep)
+
+#Lightly active and sleep
+cor(activity_sleep$lightly_active_minutes, activity_sleep$total_minutes_asleep)
+
+#Sedentary mins and sleep
+cor(activity_sleep$sedentary_minutes, activity_sleep$total_minutes_asleep)
+```
+
+  <p>Out of these 4 variables, sedentary minutes has the strongest and most significant correlation with sleep. Having a correlation coefficient of -0.60, it appears that having more sedentary minutes is associated with less sleep. This can be visualized in the following plot.</p>
+
+
+```{r sedentary and sleep plot}
+ggplot(data = activity_sleep, aes(x = sedentary_minutes, y = total_minutes_asleep))+
+  geom_point(col = "#9D59EA")+
+  geom_smooth(method = "lm")+
+  labs(title = "Sleep and Sedentary Minutes", x = "Sedentary Minutes", y = "Minutes Asleep")
+```
+
+<h3>Total Active Minutes</h3>
+
+<p>After looking at activity separated by intensity, we can now move on to examine trends associated with total active minutes.</p>
+
+```{r total active minutes histogram}
+activity_sleep <- activity_sleep %>% 
+    mutate(total_active_mins = lightly_active_minutes+fairly_active_minutes+very_active_minutes)
+
+hist(activity_sleep$total_active_mins, breaks = 10, col = "#C399F2", main = "Total Active Minutes Distribution", xlab = "Minutes")
+```
+
+  <p>This histogram depicts a normal distribution for total active minutes among all participants. The mode of Fitbit users spend between 250-300 minutes of any exercise intensity per day based on this distribution.</p>
+  
+  <p>Another possible correlation we can look at is between total activity and calories burned.</p> 
+
+
+```{r total active mins and calories scatter plot}
+ggplot(data = activity_sleep, aes(x = total_active_mins, y = calories))+
+  geom_point(col = "#9D59EA")+
+  geom_smooth(method = "lm")+
+  labs(title = "Active Minutes vs Calories", x = "Total Active Minutes", y = "Calories")
+```
+
+```{r total activity and calories correlation}
+cor(activity_sleep$total_active_mins, activity_sleep$calories)
+```
+
+
+  <p>Based on the scatter plot and correlation coefficient of 0.39, there is a moderate relationship between total active minutes and calories burned. By increasing total active minutes, users may be able to increase total calorie burn.</p>
+
+ <p>One way to increase total active minutes may be to increase total steps throughout the day, since number of steps also have a moderate correlation with calories, depicting in the chart below.</p>
+ 
+```{r}
+ggplot(daily_activity, aes(x = total_steps, y = calories))+
+  geom_point(color = "#9D59EA")+
+  geom_smooth(method = "lm")+
+  labs(title = "Daily Calories vs Total Steps", x = "Steps", y = "Calories")
+```
+
+
+
+<h3>Active Minutes by Intensity</h3>
+
+  <p>Next, excluding sedentary minutes, we can compare the different categorical intensities of activity by looking at a box and whisker plot of the average time spent in each category: light, fair, and very active.</p>
+
+
+```{r box and whisker}
+boxplot(activity_sleep$lightly_active_minutes, activity_sleep$fairly_active_minutes, activity_sleep$very_active_minutes, col = c("#C399F2", "#F6B4D0", "#7BB6F0"), xlab = "Activity Intensity", ylab = "Minutes", main = "Light, Fair, and Very Active Minutes", names = c("Light","Fair","Very"))
+```
+
+  <p>Based on this chart, the majority Fitbit users spend most of their active time in the "lightly active" range. We can determine which level of activity, if any, has a correlation with other variables such as calories burned.</p>
+
+
+```{r activity and calories correlations}
+#lightly active vs calories
+cor(activity_sleep$lightly_active_minutes, activity_sleep$calories)
+
+#fairly active vs calories
+cor(activity_sleep$fairly_active_minutes, activity_sleep$calories)
+
+#very active vs calories
+cor(activity_sleep$very_active_minutes, activity_sleep$calories)
+```
+
+
+  <p>Based on this output, there is a moderately strong (0.61) correlation between very active minutes and calories, a weak (0.11) correlation between lightly active minutes and calories, and a weak (0.18) correlation between fairly active intensity and calories. Using this         information, we can create a visualization to further our analysis. Here, we clearly see the positive correlation between a greater amount of very active minutes and more calories burned.</p>
+
+
+```{r very active minutes and calories}
+ggplot(data = activity_sleep, aes(x = very_active_minutes, y = calories))+
+  geom_point(col = "#9D59EA")+
+  geom_smooth(method = "lm")+
+  labs(title = "Very Active Minutes vs Calories", x = "Very Active Minutes", y = "Calories")
+```
+
+
+ 
+<h2 <span style="color: #FE8F77;"</span>Act</h2>
+
+
+<h3>Summary</h3>
+
+  <p>So far, 4 relevant correlations have been discovered after analyzing this data:
+    <ul>
+      <li>Very Active Minutes and Calories (+)</li>
+      <li>Total Active Minutes and Calories (+)</li>
+      <li>Total Steps and Calories (+)</li>
+      <li>Sedentary Minutes and Sleep (-)</li>
+    </ul>
+  </p>
+
+  <p>Based on these insights, not moving a lot during the day may possibly lead to less sleep. This could also be viewed as a type of feedback loop since getting less sleep could also lead to higher sedentary minutes during the day. Next, higher levels and intensities of activity have been shown as having a correlation with burning more calories. Therefore, increasing very active minutes as well as total active minutes may lead to a higher total calorie burn.</p> 
+  
+
+<h3>Recommendations</h3>  
+  <p> After my analysis, the following recommendations may improve Bellabeat's marketing strategy.
+    <ol>
+      <li><strong>Vibration System</strong> <br><em>Goal: Increase total active minutes</em> <br>Bellabeat could incorporate a vibration system in which vibrations are sent to the Leaf fitness tracker after users are sedentary for certain amounts of time. Often times, people may be caught up in sedentary activities such as watching tv or working at their desk. Sending a vibration would disrupt the monotony and remind users to stand up and take even just a short stroll.</li> 
+      <li><strong>Wellness Contest</strong> <br><em>Goal: To increase very active minutes</em> <br>Bellabeat could launch a workout program for users to challenge each other in logging their activities with a point system. Different activities may be worth different points, i.e. very active activity being worth more than lightly active activity. Points earned in the promotion could be used as a type of discount for other Bellabeat products, increasing sales.</li>
+      <li><strong>Bedtime Notifications</strong> <br><em>Goal: Decrease Sedentary Minutes and Increase Minutes Asleep</em> <br>Average sedentary time for all Fitbit users was found to be 717 minutes, just under 12 hours. Additionally, average time asleep for these users was 419 minutes, just under 7 hours. According to the CDC, over 7 hours of sleep is recommended for the general adult population and contributes to a healthy life style (Watson, 2015). To increase time asleep, Bellabeat may introduce a daily calendar of give the option to sync a calendar into their app to allow users to set a bedtime and wake time. The app would then send notifications to users when it is time to go to bed in order to get the necessary recommended amount of sleep.</li>
+    </ol>
+  </p>
+
+<br>
+<p>Thank you for reading, comments and feedback are always welcome!</p
+<br>
+<br>
+
+<h4>Citations</h4>
+
+<em>Watson NF, Badr MS, Belenky G, et al. Recommended amount of sleep for a healthy adult: a joint consensus statement of the American Academy of Sleep Medicine and Sleep Research Society. Sleep. 2015;38(6):843–844.</em>
